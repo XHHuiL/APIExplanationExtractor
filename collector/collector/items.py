@@ -8,10 +8,5 @@
 from scrapy import Item, Field
 
 
-class BookItem(Item):
-    name = Field()
-    price = Field()
-
-
 class JavaDescriptionItem(Item):
     description = Field()

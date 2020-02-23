@@ -14,6 +14,11 @@ BOT_NAME = 'collector'
 SPIDER_MODULES = ['collector.spiders']
 NEWSPIDER_MODULE = 'collector.spiders'
 
+MYSQL_DB_NAME = 'api_explanation_extractor_db'
+MYSQL_HOST = 'localhost'
+MYSQL_USER = 'root'
+MYSQL_PASSWORD = 'good2739966538'
+
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'collector (+http://www.yourdomain.com)'
@@ -70,6 +75,7 @@ ITEM_PIPELINES = {
    'collector.pipelines.StripPipeline': 400,
    'collector.pipelines.FilterMultiSpacesPipeline': 500,
    'collector.pipelines.SyntaxAnalysisPipeline': 600,
+   'collector.pipelines.MySQLPipeline': 700,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
