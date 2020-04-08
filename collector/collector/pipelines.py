@@ -91,7 +91,7 @@ class SyntaxAnalysisPipeline(object):
         return item
 
 
-import MySQLdb
+from twisted.enterprise import adbapi
 
 
 class MySQLPipeline(object):
@@ -101,19 +101,119 @@ class MySQLPipeline(object):
         db = spider.settings.get('MYSQL_DB_NAME', 'api_explanation_extractor_db')
         user = spider.settings.get('MYSQL_USER', 'root')
         password = spider.settings.get('MYSQL_PASSWORD', 'good2739966538')
-        self.db_conn = MySQLdb.connect(host=host, port=port, db=db, user=user, password=password)
-        self.db_cur = self.db_conn.cursor()
+        # use connect pool to save resources
+        self.conn_pool = adbapi.ConnectionPool('MySQLdb', host=host, port=port, db=db, user=user, password=password)
 
     def close_spider(self, spider):
-        self.db_conn.commit()
-        self.db_conn.close()
+        self.conn_pool.close()
 
     def process_item(self, item, spider):
-        self.insert_db(item)
+        self.conn_pool.runInteraction(self.insert_db, item)
         return item
 
-    def insert_db(self, item):
+    def insert_db(self, transaction, item):
         sql = 'INSERT INTO explanation (description) VALUES (%s)'
         # (item['description',]) is a tuple, but (item['description']) is not a tuple
         # should use (item['description',]) otherwise there will be a bug
-        self.db_cur.execute(sql, (item['description'],))
+        transaction.execute(sql, (item['description'],))
+
+
+class WikiUrlPipeline(object):
+    def open_spider(self, spider):
+        host = spider.settings.get('MYSQL_HOST', 'localhost')
+        port = spider.settings.get('PORT', 3306)
+        db = spider.settings.get('MYSQL_DB_NAME', 'api_explanation_extractor_db')
+        user = spider.settings.get('MYSQL_USER', 'root')
+        password = spider.settings.get('MYSQL_PASSWORD', 'good2739966538')
+        # use connect pool to save resources
+        self.conn_pool = adbapi.ConnectionPool('MySQLdb', host=host, port=port, db=db, user=user, password=password)
+
+    def close_spider(self, spider):
+        self.conn_pool.close()
+
+    def process_item(self, item, spider):
+        self.conn_pool.runInteraction(self.insert_db, item)
+        return item
+
+    def insert_db(self, transaction, item):
+        # used url_crc to accelerate the judgement process
+        sql = 'select * from wikipedia_url where url_crc = crc32(%s) and url = %s'
+        if transaction.execute(sql, (item['url'], item['url'])) == 0:
+            sql = 'INSERT INTO wikipedia_url (url, url_crc) VALUES (%s, crc32(%s))'
+            transaction.execute(sql, (item['url'], item['url']))
+
+
+from pymysql import *
+
+
+class SimilarityPipeline(object):
+    def open_spider(self, spider):
+        host = spider.settings.get('MYSQL_HOST', 'localhost')
+        port = spider.settings.get('PORT', 3306)
+        db = spider.settings.get('MYSQL_DB_NAME', 'api_explanation_extractor_db')
+        user = spider.settings.get('MYSQL_USER', 'root')
+        password = spider.settings.get('MYSQL_PASSWORD', 'good2739966538')
+        self.vector_size = 100
+        self.threshold = 0.1
+        # read top 100 records from mysql
+        conn = connect(host=host, port=port, user=user, password=password, database=db)
+        cursor = conn.cursor()
+        count = cursor.execute('select * from word_frequency order by frequency desc limit %d' % self.vector_size)
+
+        # get vector
+        self.words_1 = {}
+        for kv in cursor.fetchall():
+            word = kv[0]
+            self.words_1[word] = kv[1]
+        conn.commit()
+        conn.close()
+
+    def close_spider(self, spider):
+        pass
+
+    def process_item(self, item, spider):
+        words_2 = {}
+        num = 0
+        for token in nlp(item['description']):
+            if token.is_alpha and not token.is_stop:
+                word = token.text.lower()
+                if word in words_2.keys():
+                    words_2[word] = words_2[word] + 1
+                else:
+                    words_2[word] = 1
+                num += 1
+                if num >= self.vector_size:
+                    break
+
+        vector_1 = []
+        vector_2 = []
+        keys_1 = self.words_1.keys()
+        keys_2 = words_2.keys()
+        keys = list(keys_1)
+        for key in keys_2:
+            if key not in keys:
+                keys.append(key)
+        for key in keys:
+            if key in keys_1:
+                vector_1.append(self.words_1[key])
+            else:
+                vector_1.append(0)
+            if key in keys_2:
+                vector_2.append(words_2[key])
+            else:
+                vector_2.append(0)
+
+        val_1 = 0
+        val_2 = 0
+        val_3 = 0
+        for i in range(len(vector_1)):
+            val_1 += vector_1[i] * vector_2[i]
+            val_2 += vector_1[i] * vector_1[i]
+            val_3 += vector_2[i] * vector_2[i]
+        val_2 = val_2 ** 0.5
+        val_3 = val_3 ** 0.5
+        similarity = val_1 / (val_2 * val_3)
+        print("similarity: %f" % similarity)
+        if similarity < self.threshold:
+            raise DropItem("Low Similarity")
+        return item

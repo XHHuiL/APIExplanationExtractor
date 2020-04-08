@@ -1,9 +1,5 @@
 import scrapy
 from ..items import JavaDescriptionItem
-from scrapy.exceptions import CloseSpider
-
-count = 0
-max_count = 10
 
 
 class JavaApiSpider(scrapy.Spider):
@@ -29,14 +25,9 @@ class JavaApiSpider(scrapy.Spider):
 
     # extract explanation from class html
     def parse_explanation(self, response):
-        global count
-        global max_count
         # use the string() method of xpath to extract all the description of this class
         description = response.xpath("string(/html/body/div[4]/div[1]/ul/li/div)")
         if description.get():
             item = JavaDescriptionItem()
             item['description'] = description.get()
-            count += 1
-            if count > max_count:
-                raise CloseSpider('end')
             yield item

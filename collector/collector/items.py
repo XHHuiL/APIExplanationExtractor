@@ -10,3 +10,7 @@ from scrapy import Item, Field
 
 class JavaDescriptionItem(Item):
     description = Field()
+
+
+class WikiUrlItem(Item):
+    url = Field()
