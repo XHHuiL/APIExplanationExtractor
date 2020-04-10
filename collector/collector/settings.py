@@ -71,13 +71,12 @@ COOKIES_ENABLED = False
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'collector.pipelines.FilterNewlineCharacterPipeline': 300,
-    'collector.pipelines.StripPipeline': 400,
-    'collector.pipelines.FilterMultiSpacesPipeline': 500,
-#    'collector.pipelines.SyntaxAnalysisPipeline': 600,
-    'collector.pipelines.SimilarityPipeline': 600,
-    'collector.pipelines.MySQLPipeline': 700,
-#    'collector.pipelines.WikiUrlPipeline': 700,
+   'collector.pipelines.FilterNewlineCharacterPipeline': 300,
+   'collector.pipelines.StripPipeline': 400,
+   'collector.pipelines.FilterMultiSpacesPipeline': 500,
+   'collector.pipelines.SyntaxAnalysisPipeline': 600,
+   # 'collector.pipelines.SimilarityPipeline': 600,
+   'collector.pipelines.MySQLPipeline': 700,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

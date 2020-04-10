@@ -20,14 +20,19 @@ class WikiUrlSpider(scrapy.Spider):
     def is_image(url):
         return url.endswith(".jpg") or url.endswith(".png") or url.endswith(".svg")
 
+    @staticmethod
+    def is_entity(url):
+        return url.find("#") < 0 and url.find(":") < 0
+
     def parse(self, response):
         cur_depth = response.meta['cur_depth']
-        item = WikiUrlItem()
-        item['url'] = response.url
-        yield item
         if cur_depth >= self.max_depth:
             return
-        for link in response.xpath('//a/@href'):
-            url = response.urljoin(link.get())
-            if url.startswith("https://en.wikipedia.org/wiki/") and not self.is_image(url) and not url.find("#") >= 0:
+        for link in response.xpath('//*[@id="bodyContent"]//a/@href'):
+            href = link.get()
+            url = response.urljoin(href)
+            if url.startswith("https://en.wikipedia.org/wiki/") and not self.is_image(href) and self.is_entity(href):
+                item = WikiUrlItem()
+                item['url'] = url
+                yield item
                 yield scrapy.Request(url, callback=self.parse, meta={'cur_depth': cur_depth+1})

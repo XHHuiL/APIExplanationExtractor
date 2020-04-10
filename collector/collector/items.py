@@ -14,3 +14,7 @@ class JavaDescriptionItem(Item):
 
 class WikiUrlItem(Item):
     url = Field()
+
+
+class WikiParaItem(Item):
+    text = Field()

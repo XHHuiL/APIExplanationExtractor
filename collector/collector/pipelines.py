@@ -19,9 +19,13 @@ class FilterNewlineCharacterPipeline(object):
         pass
 
     def process_item(self, item, spider):
-        data = item['description']
         # replace '\n' by ''
-        item['description'] = data.replace("\n", "")
+        if 'description' in item.keys():
+            data = item['description']
+            item['description'] = data.replace("\n", "")
+        if 'text' in item.keys():
+            data = item['text']
+            item['text'] = data.replace("\n", "")
         return item
 
 
@@ -34,9 +38,13 @@ class StripPipeline(object):
         pass
 
     def process_item(self, item, spider):
-        data = item['description']
         # strip
-        item['description'] = data.strip()
+        if 'description' in item.keys():
+            data = item['description']
+            item['description'] = data.strip()
+        if 'text' in item.keys():
+            data = item['text']
+            item['text'] = data.strip()
         return item
 
 
@@ -49,9 +57,13 @@ class FilterMultiSpacesPipeline(object):
         pass
 
     def process_item(self, item, spider):
-        data = item['description']
         # replace multi spaces by one
-        item['description'] = re.sub(r' +', ' ', data)
+        if 'description' in item.keys():
+            data = item['description']
+            item['description'] = re.sub(r' +', ' ', data)
+        if 'text' in item.keys():
+            data = item['text']
+            item['text'] = re.sub(r' +', ' ', data)
         return item
 
 
@@ -68,7 +80,11 @@ class SyntaxAnalysisPipeline(object):
 
     def process_item(self, item, spider):
         result = ""
-        data = item['description']
+        data = "\n"
+        if 'description' in item.keys():
+            data = item['description']
+        if 'text' in item.keys():
+            data = item['text']
         para = nlp(data)
         # divide paragraph into sentences
         for sent in para.sents:
@@ -87,7 +103,10 @@ class SyntaxAnalysisPipeline(object):
                 result += sent.text
         if result == "":
             raise DropItem("illegal description")
-        item['description'] = result
+        if 'description' in item.keys():
+            item['description'] = result
+        if 'text' in item.keys():
+            item['text'] = result
         return item
 
 
@@ -112,35 +131,22 @@ class MySQLPipeline(object):
         return item
 
     def insert_db(self, transaction, item):
-        sql = 'INSERT INTO explanation (description) VALUES (%s)'
-        # (item['description',]) is a tuple, but (item['description']) is not a tuple
-        # should use (item['description',]) otherwise there will be a bug
-        transaction.execute(sql, (item['description'],))
+        if 'description' in item.keys():
+            sql = 'INSERT INTO explanation (description) VALUES (%s)'
+            # (item['description',]) is a tuple, but (item['description']) is not a tuple
+            # should use (item['description',]) otherwise there will be a bug
+            transaction.execute(sql, (item['description'].encode('utf-8'),))
 
+        if 'url' in item.keys():
+            # used url_crc to accelerate the judgement process
+            sql = 'SELECT * FROM wikipedia_url WHERE url_crc = crc32(%s) AND url = %s'
+            if transaction.execute(sql, (item['url'], item['url'])) == 0:
+                sql = 'INSERT INTO wikipedia_url (url, url_crc) VALUES (%s, crc32(%s))'
+                transaction.execute(sql, (item['url'], item['url']))
 
-class WikiUrlPipeline(object):
-    def open_spider(self, spider):
-        host = spider.settings.get('MYSQL_HOST', 'localhost')
-        port = spider.settings.get('PORT', 3306)
-        db = spider.settings.get('MYSQL_DB_NAME', 'api_explanation_extractor_db')
-        user = spider.settings.get('MYSQL_USER', 'root')
-        password = spider.settings.get('MYSQL_PASSWORD', 'good2739966538')
-        # use connect pool to save resources
-        self.conn_pool = adbapi.ConnectionPool('MySQLdb', host=host, port=port, db=db, user=user, password=password)
-
-    def close_spider(self, spider):
-        self.conn_pool.close()
-
-    def process_item(self, item, spider):
-        self.conn_pool.runInteraction(self.insert_db, item)
-        return item
-
-    def insert_db(self, transaction, item):
-        # used url_crc to accelerate the judgement process
-        sql = 'select * from wikipedia_url where url_crc = crc32(%s) and url = %s'
-        if transaction.execute(sql, (item['url'], item['url'])) == 0:
-            sql = 'INSERT INTO wikipedia_url (url, url_crc) VALUES (%s, crc32(%s))'
-            transaction.execute(sql, (item['url'], item['url']))
+        if 'text' in item.keys():
+            sql = 'INSERT INTO wiki_para (text, is_explanation) VALUES (%s, 1)'
+            transaction.execute(sql, (item['text'].encode('utf-8'),))
 
 
 from pymysql import *

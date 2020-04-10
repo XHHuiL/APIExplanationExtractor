@@ -38,7 +38,7 @@ class JavaApiSpider(scrapy.Spider):
 
     # extract answer
     def parse_answer(self, response):
-        for answer in response.xpath('//div[contains(@class, "answer")]//div[@class="post-text"]/p/text()'):
+        for answer in response.xpath('string(//div[contains(@class, "answer")]//div[@class="post-text"]/p)'):
             item = JavaDescriptionItem()
             item["description"] = answer.get()
             yield item
