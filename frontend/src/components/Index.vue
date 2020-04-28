@@ -28,6 +28,9 @@ export default {
       if (words === '') {
         words = 'Java'
       }
+      this.$http.post('http://localhost:5000/hotword/degree/inc/' + words).then(function () {
+        // do nothing
+      })
       this.$router.push('/search/' + words)
     }
   }

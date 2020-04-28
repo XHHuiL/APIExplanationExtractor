@@ -132,10 +132,10 @@ class MySQLPipeline(object):
 
     def insert_db(self, transaction, item):
         if 'description' in item.keys():
-            sql = 'INSERT INTO explanation (description) VALUES (%s)'
+            sql = 'INSERT INTO explanation (keyword, description) VALUES (%s, %s)'
             # (item['description',]) is a tuple, but (item['description']) is not a tuple
             # should use (item['description',]) otherwise there will be a bug
-            transaction.execute(sql, (item['description'].encode('utf-8'),))
+            transaction.execute(sql, (item['keyword'], item['description'].encode('utf-8')))
 
         if 'url' in item.keys():
             # used url_crc to accelerate the judgement process

@@ -9,6 +9,7 @@ from scrapy import Item, Field
 
 
 class JavaDescriptionItem(Item):
+    keyword = Field()
     description = Field()
 
 

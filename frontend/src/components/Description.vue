@@ -11,7 +11,7 @@
       </p>
     </div>
     <Card id="des">
-      <p slot="title">Description</p>
+      <p slot="title" class="title"> {{keyword}} </p>
       <p> {{description}} </p>
     </Card>
   </div>
@@ -21,8 +21,10 @@
 export default {
   name: 'Description',
   data () {
+    var keyword = this.$route.params.keyword
     var des = this.$route.params.des
     return {
+      keyword: keyword,
       description: des
     }
   },
@@ -77,9 +79,14 @@ export default {
 #des {
   width: 600px;
   min-height: 200px;
-  margin: 20px auto 10px auto;
+  margin: 20px auto 20px auto;
   color: rgb(108, 108, 108);
   font-size: 14px;
+}
+
+#des .title {
+  color: rgb(26, 13, 171);
+  font-size: 18px;
 }
 
 </style>

@@ -26,8 +26,10 @@ class JavaApiSpider(scrapy.Spider):
     # extract explanation from class html
     def parse_explanation(self, response):
         # use the string() method of xpath to extract all the description of this class
+        keyword = response.xpath("string(/html/body/div[4]/div[1]/ul/li/pre/span)")
         description = response.xpath("string(/html/body/div[4]/div[1]/ul/li/div)")
-        if description.get():
+        if keyword.get() and description.get():
             item = JavaDescriptionItem()
+            item['keyword'] = keyword.get()
             item['description'] = description.get()
             yield item

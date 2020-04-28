@@ -15,9 +15,14 @@
     </header>
     <div id="content">
       <div id="results">
-        <p v-for="item in dataShow" v-bind:key="item" @click="browseDescription($event)">
-          {{item}}
-        </p>
+        <div v-for="(item, index) in dataShow" v-bind:key="index" @click="browseDescription(item)">
+          <p class="keyword">
+            {{ item.keyword }}
+          </p>
+          <p class="des">
+            {{item.description}}
+          </p>
+        </div>
         <Page id="page" :total="total" :page-size="pageSize" show-elevator show-total @on-change="pageIndexChange"/>
       </div>
       <aside id="hot-words">
@@ -41,48 +46,6 @@
 </template>
 
 <script>
-function results (words) {
-  if (words === 'C') {
-    return [
-      'C is a programming language',
-      'C is really quick'
-    ]
-  }
-  return [
-    'Java is a general-purpose programming language that is class-based and object-oriented.',
-    'Java was originally developed by James Gosling at Sun Microsystems.',
-    'The latest versions are Java 14, released in March 2020.',
-    'The syntax of Java is largely influenced by C++.',
-    'Java was built almost exclusively as an object-oriented language.',
-    'Source files must be named after the public class they contain, appending the suffix .java',
-    'The keyword public denotes that a method can be called from code in other classes. ',
-    'The keyword void indicates that the main method does not return any value to the caller.'
-  ]
-}
-function hotWords () {
-  return [
-    {
-      text: 'Java',
-      degree: 100
-    },
-    {
-      text: 'C++',
-      degree: 90
-    },
-    {
-      text: 'C#',
-      degree: 80
-    },
-    {
-      text: 'Go',
-      degree: 75
-    },
-    {
-      text: 'Python',
-      degree: 60
-    }
-  ]
-}
 export default {
   name: 'Search',
   data () {
@@ -91,7 +54,7 @@ export default {
       hotWords: [],
       currentPage: 0,
       total: 8,
-      pageSize: 7
+      pageSize: 10
     }
   },
   methods: {
@@ -99,11 +62,12 @@ export default {
       this.$data.currentPage = i - 1
     },
 
-    browseDescription (event) {
+    browseDescription (item) {
       this.$router.push({
         name: 'Description',
         params: {
-          des: event.target.innerText
+          keyword: item.keyword,
+          des: item.description
         }
       })
     },
@@ -113,6 +77,9 @@ export default {
       if (words === '') {
         words = 'Java'
       }
+      this.$http.post('http://localhost:5000/hotword/degree/inc/' + words).then(function () {
+        // do nothing
+      })
       this.$router.replace('/blank/' + words)
     },
 
@@ -132,9 +99,13 @@ export default {
   },
   created () {
     var words = this.$route.params.words
-    this.$data.results = results(words)
-    this.$data.hotWords = hotWords()
-    this.$data.total = this.$data.results.length
+    this.$http.get('http://localhost:5000/search/' + words).then(function (result) {
+      this.$data.results = result.body.results
+      this.$data.total = this.$data.results.length
+    })
+    this.$http.get('http://localhost:5000/hotword/all').then(function (result) {
+      this.$data.hotWords = result.body.hotwords
+    })
   }
 }
 </script>
@@ -247,7 +218,7 @@ export default {
   display: block;
   width: 700px;
   margin-left: 120px;
-  margin-right: 20px;
+  margin-right: 30px;
 }
 
 #hot-words {
@@ -281,15 +252,27 @@ export default {
   color: #969696;
 }
 
-#results p {
-  padding-top: 12px;
-  margin-bottom: 4px;
+#results .keyword {
+  margin-top: 24px;
+  font-size: 24px;
+  color: rgb(26, 13, 171);
+  cursor: pointer;
+}
+
+#results .des {
+  padding-top: 6px;
   color: rgb(88, 88, 88);
   font-size: 16px;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 #results #page {
   margin-top: 16px;
+  margin-bottom: 16px;
 }
 </style>
